@@ -206,4 +206,113 @@ function loadHistory() {
 // Load last text
 if (localStorage.getItem('lastText')) {
     document.getElementById('textInput').value = localStorage.getItem('lastText');
+let boy1Voice, boy2Voice, girl1Voice, girl2Voice;
+
+function initCharacterVoices() {
+  const voices = speechSynthesis.getVoices();
+  // English boys
+  boy1Voice = voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('male')) || voices.find(v => v.lang.startsWith('en'));
+  boy2Voice = voices.find(v => v !== boy1Voice && v.lang.startsWith('en')) || boy1Voice;
+
+  // Hindi girls
+  girl1Voice = voices.find(v => v.lang.startsWith('hi') && v.name.toLowerCase().includes('female')) || voices.find(v => v.lang.startsWith('hi'));
+  girl2Voice = voices.find(v => v !== girl1Voice && v.lang.startsWith('hi')) || girl1Voice;
+}
+
+speechSynthesis.onvoiceschanged = initCharacterVoices;
+
+function speakWithVoice(text, voice) {
+  const u = new SpeechSynthesisUtterance(text);
+  if (voice) {
+    u.voice = voice;
+    u.lang = voice.lang;
+  }
+  u.rate = 0.95;
+  u.pitch = 1;
+  speechSynthesis.speak(u);
+}
+
+// Example dialogue – tum apna text daal sakte ho
+const dialogueLines = [
+  { speaker: 'boy1', text: 'I built this audiobook just for you.' },
+  { speaker: 'girl1', text: 'मैंने ये कहानी सिर्फ तुम्हारे लिए लिखी है।' },
+  { speaker: 'boy2', text: 'Even the silence between our lines feels like music.' },
+  { speaker: 'girl2', text: 'जब तुम सुनते हो, मुझे लगता है मेरी रूह बोल रही है।' }
+];
+
+function playDialogue() {
+  if (!speechSynthesis.getVoices().length) initCharacterVoices();
+  speechSynthesis.cancel();
+
+  let delay = 0;
+  dialogueLines.forEach(line => {
+    const voice =
+      line.speaker === 'boy1' ? boy1Voice :
+      line.speaker === 'boy2' ? boy2Voice :
+      line.speaker === 'girl1' ? girl1Voice :
+      girl2Voice;
+
+    setTimeout(() => speakWithVoice(line.text, voice), delay);
+    // approx 1s per 8 chars
+    delay += line.text.length * 120;
+  });
+// --- Long text chunking settings ---
+const MAX_CHARS_PER_CHUNK = 2500; // approx 2–3k characters ek baar [web:151]
+
+function splitTextIntoChunks(text) {
+  const chunks = [];
+  let current = '';
+
+  const sentences = text.split(/([.?!।…]s+)/); // English + Hindi sentence separators
+
+  sentences.forEach(part => {
+    if ((current + part).length > MAX_CHARS_PER_CHUNK) {
+      if (current.trim().length) chunks.push(current.trim());
+      current = part;
+    } else {
+      current += part;
+    }
+  });
+
+  if (current.trim().length) chunks.push(current.trim());
+  return chunks;
+}
+
+let longQueue = [];
+let longIsPlaying = false;
+
+function speakChunkQueue(lang, voice, rate = 0.95, pitch = 1) {
+  if (!longQueue.length) {
+    longIsPlaying = false;
+    return;
+  }
+
+  const text = longQueue.shift();
+  const u = new SpeechSynthesisUtterance(text);
+  if (voice) {
+    u.voice = voice;
+    u.lang = voice.lang;
+  } else if (lang) {
+    u.lang = lang;
+  }
+  u.rate = rate;
+  u.pitch = pitch;
+
+  u.onend = () => {
+    speakChunkQueue(lang, voice, rate, pitch);
+  };
+
+  u.onerror = () => {
+    speakChunkQueue(lang, voice, rate, pitch);
+  };
+
+  speechSynthesis.speak(u);
+}
+
+function speakVeryLongText(fullText, lang, voice) {
+  speechSynthesis.cancel();
+  longQueue = splitTextIntoChunks(fullText);
+  if (!longQueue.length) return;
+  longIsPlaying = true;
+  speakChunkQueue(lang, voice);
 }
