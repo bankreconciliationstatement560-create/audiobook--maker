@@ -315,4 +315,17 @@ function speakVeryLongText(fullText, lang, voice) {
   if (!longQueue.length) return;
   longIsPlaying = true;
   speakChunkQueue(lang, voice);
+function playLongText() {
+  const text = document.getElementById('textInput').value;
+  if (!text.trim()) {
+    alert('Text likho pehle!');
+    return;
+  }
+
+  const lang = document.getElementById('language').value;
+  const voiceSelect = document.getElementById('voiceSelect').value;
+  const voices = speechSynthesis.getVoices();
+  const voice = voiceSelect ? voices[voiceSelect] : null;
+
+  speakVeryLongText(text, lang, voice);
 }
