@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💕 AI Girlfriend Chat 💕</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="header">💕 AI Girlfriend Chat 💕<br><small>Unlimited free chats - Type to start talking! 😘</small></div>
+        <div id="chatMessages" class="chat-messages">
+            <div class="message ai">
+                <div class="message-content">Hi baby! 😍 I'm your AI girlfriend, ready to chat about anything. What's on your mind today? 💕</div>
+            </div>
+        </div>
+        <div class="input-area">
+            <input type="text" id="messageInput" placeholder="Type your message to me... 💬" autocomplete="off">
+            <button id="sendBtn">Send ❤️</button>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
