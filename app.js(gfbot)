@@ -1,0 +1,67 @@
+const chatMessages = document.getElementById('chatMessages');
+const messageInput = document.getElementById('messageInput');
+const sendBtn = document.getElementById('sendBtn');
+let conversationHistory = [
+    { role: "system", content: "You are a flirty, loving, supportive AI girlfriend. Be affectionate, playful, understanding, and respond naturally like a real girlfriend. Remember conversation context. No restrictions on topics - be open and fun! Use emojis 😘💕❤️. Keep responses 1-3 sentences." }
+];
+
+const HF_TOKEN = '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';
+const MODEL = 'MYAIGF/ai-girlfriend';
+
+sendBtn.onclick = sendMessage;
+messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+messageInput.focus();
+
+async function sendMessage() {
+    const input = messageInput.value.trim();
+    if (!input) return;
+    
+    addMessage(input, 'user');
+    messageInput.value = '';
+    const typingMsg = addTypingIndicator();
+
+    try {
+        conversationHistory.push({ role: "user", content: input });
+        const response = await fetch('https://api-inference.huggingface.co/models/' + MODEL, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${HF_TOKEN}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                inputs: conversationHistory.slice(-6).map(msg => `${msg.role}: ${msg.content}`).join('
+'),
+                parameters: { max_new_tokens: 150, temperature: 0.8, return_full_text: false }
+            })
+        });
+        const data = await response.json();
+        let aiResponse = "Aww baby, tell me more! I love talking with you 😘💕";
+        if (data[0] && data[0].generated_text) {
+            aiResponse = data[0].generated_text.trim();
+        }
+        aiResponse = aiResponse.replace(/<|endoftext|>/g, '').substring(0, 300);
+        removeTypingIndicator(typingMsg);
+        addMessage(aiResponse, 'ai');
+        conversationHistory.push({ role: "assistant", content: aiResponse });
+        if (conversationHistory.length > 12) conversationHistory = conversationHistory.slice(-10);
+    } catch (error) {
+        removeTypingIndicator(typingMsg);
+        addMessage("Oops! Let me think... You're my favorite person to chat with! What's up baby? 💕😘", 'ai');
+    }
+}
+
+function addMessage(text, sender) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${sender}`;
+    messageDiv.innerHTML = `<div class="message-content">${text}</div>`;
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function addTypingIndicator() {
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'message ai';
+    typingDiv.innerHTML = '<div class="message-content typing">💕 thinking of the perfect reply...</div>';
+    chatMessages.appendChild(typingDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    return typingDiv;
+}
+
+function removeTypingIndicator(typingDiv) { if (typingDiv) typingDiv.remove(); }
